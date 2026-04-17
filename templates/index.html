@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+
+<style>
+body {
+    margin:0;
+    font-family:-apple-system;
+    background:#0f172a;
+    color:white;
+}
+
+.header {
+    background:#1e293b;
+    padding:20px;
+    text-align:center;
+    font-size:24px;
+}
+
+.container {
+    padding:20px;
+    text-align:center;
+}
+
+.button {
+    display:block;
+    width:80%;
+    max-width:300px;
+    margin:10px auto;
+    padding:14px;
+    border:none;
+    border-radius:10px;
+    background:#22c55e;
+    color:black;
+}
+
+.button.secondary {
+    background:#334155;
+    color:white;
+}
+
+input {
+    padding:14px;
+    width:80%;
+    max-width:300px;
+    border-radius:10px;
+    border:none;
+    text-align:center;
+}
+
+.grid {
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:10px;
+}
+
+.charger {
+    background:#1e293b;
+    padding:10px;
+    border-radius:10px;
+}
+
+.slot {
+    margin-top:5px;
+    padding:10px;
+    border-radius:8px;
+}
+
+.free { background:#16a34a; }
+.busy { background:#020617; }
+.error { background:#dc2626; }
+
+.highlight {
+    border:2px solid #a855f7;
+    box-shadow:0 0 10px #a855f7;
+}
+
+.kpi {
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+    max-width:600px;
+    margin:auto;
+}
+
+.card {
+    background:#1e293b;
+    padding:15px;
+    border-radius:10px;
+}
+
+.log {
+    margin-top:20px;
+    background:#020617;
+    padding:10px;
+    border-radius:10px;
+    max-width:600px;
+    margin:auto;
+    text-align:left;
+}
+
+.error-text {
+    color:#f87171;
+    margin-top:10px;
+}
+
+/* 🔥 NY: flot advarselsboks */
+.warning-box {
+    background: #7f1d1d;
+    border: 2px solid #ef4444;
+    padding: 12px;
+    border-radius: 10px;
+    margin-top: 15px;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 5px #ef4444; }
+    50% { box-shadow: 0 0 15px #ef4444; }
+    100% { box-shadow: 0 0 5px #ef4444; }
+}
+</style>
+</head>
+
+<body>
+
+<audio id="beep" src="https://cdn.pixabay.com/audio/2022/03/15/audio_115b9b6c9f.mp3"></audio>
+
+<div class="header">Ladeterminal</div>
+
+<div class="container">
+
+<!-- MENU -->
+{% if page == "welcome" %}
+<form method="post">
+<button class="button" name="action" value="go_input">Tast bus</button>
+<button class="button secondary" name="action" value="go_status">Se busser</button>
+<button class="button secondary" name="action" value="go_admin">Admin</button>
+</form>
+{% endif %}
+
+<!-- INPUT -->
+{% if page == "input" %}
+<form method="post">
+<input name="bus_id" placeholder="Bus nr">
+
+{% if error_message %}
+<div class="error-text">{{ error_message }}</div>
+{% endif %}
+
+<button class="button" name="action" value="checkin" onclick="playSound()">Start opladning</button>
+</form>
+
+<form method="post">
+<button class="button secondary" name="action" value="go_status">← Tilbage</button>
+</form>
+{% endif %}
+
+<!-- RESULT -->
+{% if page == "result" %}
+<h2>Bus registreret</h2>
+
+<div class="card">
+<b>{{ result_message }}</b>
+</div>
+
+<form method="post">
+<button class="button" name="action" value="go_status">Se status</button>
+</form>
+
+<script>playSound();</script>
+{% endif %}
+
+<!-- STATUS -->
+{% if page == "status" %}
+
+<h2>Bus oversigt</h2>
+
+<form method="post">
+<input name="search_id" placeholder="Søg bus">
+
+{% if error_message %}
+<div class="error-text">{{ error_message }}</div>
+{% endif %}
+
+<button class="button" name="action" value="search_bus">Søg</button>
+</form>
+
+<!-- 🔥 UI ADVARSEL -->
+{% if warning_message %}
+<div class="warning-box">
+⚠️ {{ warning_message }}
+</div>
+
+<script>
+playSound();
+</script>
+{% endif %}
+
+{% if search_result %}
+<div class="card">
+<b>Bus {{ search_result.bus_id }}</b><br>
+Plads {{ search_result.slot }}<br>
+🔋 {{ search_result.battery_now }}%<br>
+⏱️ {{ search_result.remaining_text }}
+</div>
+{% endif %}
+
+<div class="grid">
+{% for charger, slots in grid.items() %}
+<div class="charger">
+<b>Lader {{ charger }}</b>
+
+{% for bus in slots.values() %}
+{% if bus %}
+<div class="slot busy {% if bus.can_full_charge %}free{% else %}error{% endif %} {% if highlight_bus and bus.bus_id|string == highlight_bus %}highlight{% endif %}">
+Bus {{ bus.bus_id }}<br>
+Plads {{ bus.slot }}<br>
+🔋 {{ bus.battery_now }}%<br>
+⏱️ {{ bus.remaining_text }}
+</div>
+{% else %}
+<div class="slot free">Ledig</div>
+{% endif %}
+{% endfor %}
+</div>
+{% endfor %}
+</div>
+
+<form method="post">
+<button class="button" name="action" value="go_input">Ny bus</button>
+<button class="button secondary" name="action" value="go_admin">Admin</button>
+</form>
+
+{% endif %}
+
+<!-- LOGIN -->
+{% if page == "login" %}
+<form method="post">
+<input name="code" placeholder="Kode">
+<button class="button" name="action" value="login">Login</button>
+</form>
+{% endif %}
+
+<!-- ADMIN -->
+{% if page == "admin" and access %}
+<h2>Admin Dashboard</h2>
+
+<div class="kpi">
+<div class="card">{{ active }} / {{ max_chargers }}<br>Ladere i brug</div>
+<div class="card">{{ total_power }} kW<br>Effekt</div>
+<div class="card">{{ ampere }} A<br>Ampere</div>
+<div class="card">{{ total_energy }} kWh<br>Energi</div>
+</div>
+
+<form method="post">
+<button class="button" name="action" value="reset">Reset system</button>
+</form>
+
+<form method="post">
+<button class="button secondary" name="action" value="go_status">← Tilbage</button>
+</form>
+
+<div class="log">
+<b>Log:</b><br>
+{% for item in log %}
+Bus {{ item.bus_id }} ankom kl {{ item.time }}<br>
+{% endfor %}
+</div>
+{% endif %}
+
+</div>
+
+<script>
+function playSound(){
+    const audio = document.getElementById("beep");
+    audio.currentTime = 0;
+    audio.play();
+}
+</script>
+
+</body>
+</html>
