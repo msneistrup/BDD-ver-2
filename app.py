@@ -16,18 +16,22 @@ MAX_CHARGERS = 10
 CHARGING_POWER = 120
 BATTERY_CAPACITY = 350
 
+
 def load_assignments():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r") as f:
             return json.load(f)
     return {}
 
+
 def save_assignments(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f)
 
+
 def load_bus_data():
     return pd.read_csv("bus_data.csv")
+
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -116,10 +120,10 @@ def index():
                     "bus_id": int(bus_id),
                     "time": int(row.iloc[0]["available_time"]),
                     "energy_needed": float(row.iloc[0]["energy_needed"]),
+                    "battery_start": float(row.iloc[0]["battery_start"]),  # 🔋 FRA CSV
                     "timestamp": time.time()
                 }
 
-                # GEM først
                 assignments[bus_id] = new_bus
                 save_assignments(assignments)
 
@@ -128,7 +132,7 @@ def index():
                     "time": datetime.now().strftime("%H:%M")
                 })
 
-                # 🔥 BRUG SAMME LOGIK SOM GRID
+                # Samme logik som grid (RETTER BESKED)
                 i = len(assignments) - 1
                 charger = (i % 5) + 1
                 pos = 1 if i < 5 else 2
@@ -166,8 +170,9 @@ def index():
 
         data["can_full_charge"] = energy_possible >= data["energy_needed"]
 
-        progress = elapsed / max(1, total_time)
-        battery = min(100, (progress * data["energy_needed"] / BATTERY_CAPACITY) * 100)
+        # 🔋 BATTERI (FIXET)
+        charged_percent = (elapsed / 3600) * CHARGING_POWER / BATTERY_CAPACITY * 100
+        battery = min(100, data.get("battery_start", 0) + charged_percent)
 
         data["battery_now"] = int(battery)
 
@@ -198,6 +203,7 @@ def index():
         result_message=result_message,
         warning_message=warning_message
     )
+
 
 if __name__ == "__main__":
     app.run(debug=True)

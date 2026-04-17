@@ -8,7 +8,8 @@ n = 50
 data = []
 
 for i in range(1, n+1):
-    battery_level = np.random.uniform(0.2, 0.8)
+    battery_level = np.random.uniform(0.2, 0.8)  # 🔋 20-80%
+
     capacity = 350
 
     energy_needed = (1 - battery_level) * capacity
@@ -17,9 +18,16 @@ for i in range(1, n+1):
 
     available_time = charge_time * np.random.uniform(0.6, 1.2)
 
-    data.append([i, int(available_time), energy_needed])
+    # 🔥 TILFØJET battery_start i %
+    battery_percent = int(battery_level * 100)
 
-df = pd.DataFrame(data, columns=["bus_id","available_time","energy_needed"])
+    data.append([i, int(available_time), energy_needed, battery_percent])
+
+df = pd.DataFrame(
+    data,
+    columns=["bus_id", "available_time", "energy_needed", "battery_start"]
+)
+
 df.to_csv("bus_data.csv", index=False)
 
 print("CSV klar")
