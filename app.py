@@ -65,6 +65,9 @@ def index():
             log.clear()
             return redirect("/")
 
+        # ------------------------
+        # SEARCH
+        # ------------------------
         elif action == "search_bus":
             page = "status"
             sid = request.form.get("search_id")
@@ -82,13 +85,15 @@ def index():
                 search_result = assignments[sid]
                 highlight_bus = sid
 
-                # 🔥 FIXET WARNING LOGIK
                 if (
                     not search_result.get("can_full_charge", True)
                     or search_result.get("battery_now", 0) < 80
                 ):
                     warning_message = "Advarsel: Bus mangler strøm og kan ikke fuldføre ruten"
 
+        # ------------------------
+        # CHECK-IN
+        # ------------------------
         elif action == "checkin":
             bus_id = request.form.get("bus_id")
 
@@ -114,6 +119,7 @@ def index():
                     "timestamp": time.time()
                 }
 
+                # GEM først
                 assignments[bus_id] = new_bus
                 save_assignments(assignments)
 
@@ -122,26 +128,20 @@ def index():
                     "time": datetime.now().strftime("%H:%M")
                 })
 
-                # plads 101/201
-                taken = []
-                for i, data in enumerate(assignments.values()):
-                    charger = (i % 5) + 1
-                    pos = 1 if i < 5 else 2
-                    slot = 100 + charger if pos == 1 else 200 + charger
-                    taken.append(slot)
+                # 🔥 BRUG SAMME LOGIK SOM GRID
+                i = len(assignments) - 1
+                charger = (i % 5) + 1
+                pos = 1 if i < 5 else 2
 
-                assigned = None
-                for c in range(1, 6):
-                    for p in [100, 200]:
-                        if p + c not in taken:
-                            assigned = p + c
-                            break
-                    if assigned:
-                        break
+                assigned_slot = 100 + charger if pos == 1 else 200 + charger
+                new_bus["slot"] = assigned_slot
 
-                new_bus["slot"] = assigned
-                result_message = f"Kør til plads {assigned}"
+                result_message = f"Kør til plads {assigned_slot}"
                 page = "result"
+
+    # ------------------------
+    # GRID + CALC
+    # ------------------------
 
     grid = {i: {1: None, 2: None} for i in range(1, 6)}
 
@@ -149,6 +149,7 @@ def index():
     total_energy = 0
 
     for i, data in enumerate(assignments.values()):
+
         charger = (i % 5) + 1
         pos = 1 if i < 5 else 2
 
